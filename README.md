@@ -97,14 +97,15 @@ social-network-recommendation/
 - [x] **Stage 0: Project Initialization & Environment Setup**
 - [x] **Stage 1: Dataset Acquisition & Graph Construction**
 - [x] **Stage 2: Traditional Graph-based Recommendation Algorithms**
-- [x] **Stage 3: Node2Vec & Node Embeddings** (Completed)
-  - Biased 2nd-order random walks with flexible return (p) and in-out (q) parameters
-  - Continuous low-dimensional node representation learning via Skip-gram Word2Vec
-  - Serialization of trained models and embedding dictionaries in `models/`
-  - Cosine similarity ranking engine with strict candidate filtering
-  - Side-by-side comparison illustrating homophily vs. 1-hop heuristic hub bias
-  - 34 automated unit tests passing
-- [ ] **Stage 4: Supervised Link Prediction**
+- [x] **Stage 3: Node2Vec & Node Embeddings**
+- [x] **Stage 4: Supervised Link Prediction** (Completed)
+  - Leak-free bridge-preserving edge splitting (80% train, 20% test)
+  - Disjoint negative edge sampling from true non-edges
+  - Symmetric node-pair feature engineering via Hadamard product
+  - Logistic Regression classifier training and model serialization in `models/`
+  - Validated test set performance: 73.3% Accuracy, 0.7822 ROC-AUC, 0.7676 AP
+  - 5-way recommendation comparison table exported to `data/processed/`
+  - 41 automated unit tests passing
 - [ ] **Stage 5: Model Evaluation & Comparison**
 - [ ] **Stage 6: Streamlit Application**
 - [ ] **Stage 7: Real-world Dataset Integration (SNAP Facebook)**

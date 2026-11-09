@@ -184,3 +184,4 @@ def test_recommend_node2vec_isolated_node_handling():
     recs = recommend_node2vec_cosine(g, mock_embeddings, user_id=99, top_k=2)
     assert len(recs) == 2
     assert all(r["score"] == 0.0 for r in recs)
+
