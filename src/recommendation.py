@@ -4,3 +4,4 @@ Implements heuristic link prediction algorithms:
 - Jaccard Similarity / Coefficient
 - Preferential Attachment
 """
+

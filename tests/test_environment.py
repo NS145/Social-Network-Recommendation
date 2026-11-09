@@ -68,3 +68,4 @@ def test_networkx_basic_functionality():
     assert g.number_of_nodes() == 2
     assert g.number_of_edges() == 1
     assert not g.is_directed()
+
