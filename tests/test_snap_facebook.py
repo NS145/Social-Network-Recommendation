@@ -85,3 +85,4 @@ def test_facebook_recommendation_pipeline():
     for r in recs:
         assert r["candidate_id"] != test_node
         assert not g_ego0.has_edge(test_node, r["candidate_id"])
+

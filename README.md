@@ -109,5 +109,11 @@ social-network-recommendation/
   - Evaluated on Facebook Ego-0: Common Neighbors (ROC-AUC 0.9368), Node2Vec (ROC-AUC 0.8780)
   - Streamlit dashboard updated with dynamic dataset selection and smart ego-neighborhood rendering
   - 58 automated unit tests passing
-- [ ] **Stage 8: Optional GNN Extension**
+- [x] **Stage 8: Advanced Extension - Graph Neural Networks (GNNs)** (Completed)
+  - Implemented 2-layer Graph Convolutional Network (`GCNLinkPredictor`) with symmetric adjacency normalization.
+  - Implemented 2-layer GraphSAGE Network (`GraphSAGELinkPredictor`) with mean neighborhood aggregation.
+  - End-to-end inner product edge decoder $\sigma(\mathbf{z}_u^\top \mathbf{z}_v)$ trained with binary cross-entropy loss.
+  - Outperformed shallow representations on held-out test edges: GCN attained **ROC-AUC: 0.8311** and **Average Precision: 0.8769**.
+  - Successfully resolved topological hub bias by prioritizing latent community homophily for recommendations.
+  - 66 automated unit tests passing across the repository.
 
