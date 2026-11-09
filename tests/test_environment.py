@@ -48,8 +48,9 @@ def test_src_package_structure():
     from src import embeddings
     from src import link_prediction
     from src import evaluation
+    from src import gnn
 
-    assert src.__version__ == "0.1.0"
+    assert src.__version__ == "1.0.0"
     assert data_loader is not None
     assert graph_builder is not None
     assert graph_analysis is not None
@@ -57,6 +58,7 @@ def test_src_package_structure():
     assert embeddings is not None
     assert link_prediction is not None
     assert evaluation is not None
+    assert gnn is not None
 
 
 def test_networkx_basic_functionality():
