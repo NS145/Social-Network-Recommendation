@@ -98,15 +98,15 @@ social-network-recommendation/
 - [x] **Stage 1: Dataset Acquisition & Graph Construction**
 - [x] **Stage 2: Traditional Graph-based Recommendation Algorithms**
 - [x] **Stage 3: Node2Vec & Node Embeddings**
-- [x] **Stage 4: Supervised Link Prediction** (Completed)
-  - Leak-free bridge-preserving edge splitting (80% train, 20% test)
-  - Disjoint negative edge sampling from true non-edges
-  - Symmetric node-pair feature engineering via Hadamard product
-  - Logistic Regression classifier training and model serialization in `models/`
-  - Validated test set performance: 73.3% Accuracy, 0.7822 ROC-AUC, 0.7676 AP
-  - 5-way recommendation comparison table exported to `data/processed/`
-  - 41 automated unit tests passing
-- [ ] **Stage 5: Model Evaluation & Comparison**
+- [x] **Stage 4: Supervised Link Prediction**
+- [x] **Stage 5: Model Evaluation & Comparison** (Completed)
+  - Unified evaluation benchmark across all 5 algorithms on identical held-out test splits
+  - Computed Precision@5, Recall@5, ROC-AUC, and Average Precision
+  - Evaluated link classification (Supervised LR achieved highest ROC-AUC: 0.7822, AP: 0.7676)
+  - Generated dual-panel comparative performance plot in `reports/figures/model_evaluation_comparison.png`
+  - Exported benchmark data to `data/processed/model_evaluation_results.csv` and `.json`
+  - Critical academic analysis of class imbalance, temporal splits, and negative sampling limits
+  - 47 automated unit tests passing
 - [ ] **Stage 6: Streamlit Application**
 - [ ] **Stage 7: Real-world Dataset Integration (SNAP Facebook)**
 - [ ] **Stage 8: Optional GNN Extension**

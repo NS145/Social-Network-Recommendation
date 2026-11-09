@@ -186,3 +186,4 @@ def test_recommend_supervised_exclusions(karate_graph, prepared_splits, train_em
         
     scores = [r["score"] for r in recs]
     assert scores == sorted(scores, reverse=True)
+
