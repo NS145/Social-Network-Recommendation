@@ -111,3 +111,11 @@ def test_all_algorithms_ui_pipeline():
             assert cand not in friends, f"{algo_name} recommended existing friend {cand}!"
             assert cand in candidates, f"{algo_name} recommended non-candidate {cand}!"
 
+
+def test_streamlit_app_renders_without_exceptions():
+    """Verify that the full Streamlit app runs without unhandled exceptions."""
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file("app.py")
+    at.run(timeout=30)
+    assert len(at.exception) == 0, f"App threw exceptions: {at.exception}"
+

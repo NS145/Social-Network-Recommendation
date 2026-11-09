@@ -89,7 +89,10 @@ def get_cached_models_and_embeddings(
     # Train if missing
     seed = 42
     test_ratio = 0.2
-    g_train, train_pos, test_pos = split_edges(_graph, test_ratio=test_ratio, seed=seed)
+    is_large = _graph.number_of_nodes() > 500
+    g_train, train_pos, test_pos = split_edges(
+        _graph, test_ratio=test_ratio, seed=seed, ensure_connected=not is_large
+    )
     train_neg, test_neg = sample_negative_edges(_graph, len(train_pos), len(test_pos), seed=seed)
     
     # Configure walk length based on graph size
@@ -170,7 +173,11 @@ def get_cached_evaluation_dataframe(
         except Exception:
             pass
             
-    g_train, train_pos, test_pos = split_edges(_graph, test_ratio=0.2, seed=42)
+    seed = 42
+    is_large = _graph.number_of_nodes() > 500
+    g_train, train_pos, test_pos = split_edges(
+        _graph, test_ratio=0.2, seed=seed, ensure_connected=not is_large
+    )
     train_neg, test_neg = sample_negative_edges(_graph, len(train_pos), len(test_pos), seed=seed)
     
     return evaluate_all_models(
@@ -230,8 +237,8 @@ def main():
         
     # Provide a curated default node for convenience
     default_index = 0
-    if dataset_key == "facebook_ego0" and 0 in all_nodes:
-        default_index = all_nodes.index(0)
+    if dataset_key == "facebook_ego0" and 9 in all_nodes:
+        default_index = all_nodes.index(9)
     elif dataset_key == "facebook_full" and 0 in all_nodes:
         default_index = all_nodes.index(0)
         
@@ -388,31 +395,37 @@ def main():
         with col_table:
             st.markdown(f"**Top-{top_k} Recommended Friends:**")
             
-            table_rows = []
-            for r in current_recs:
-                cand_id = r["candidate_id"]
-                cand_club = graph.nodes[cand_id].get("club", "Member")
-                mutuals_str = ", ".join(map(str, r["mutual_friends"])) if r["mutual_friends"] else "None"
+            if not current_recs:
+                st.info(
+                    f"ℹ️ **User {selected_user}** is already directly connected to all {len(user_friends)} members in this subnetwork. "
+                    "No additional candidate friends are available to recommend."
+                )
+            else:
+                table_rows = []
+                for r in current_recs:
+                    cand_id = r["candidate_id"]
+                    cand_club = graph.nodes[cand_id].get("club", "Member")
+                    mutuals_str = ", ".join(map(str, r["mutual_friends"])) if r["mutual_friends"] else "None"
+                    
+                    row_dict = {
+                        "Rank": f"#{r['rank']}",
+                        "Candidate": f"User {cand_id}",
+                        score_col_name: f"{r['score']:.4f}" if isinstance(r["score"], float) else str(r["score"]),
+                        "Mutuals Count": r["num_mutual_friends"],
+                        "Mutual Friends": mutuals_str,
+                        "Total Friends": r["candidate_degree"]
+                    }
+                    if user_club != "Member":
+                        row_dict["Affiliation"] = cand_club
+                    table_rows.append(row_dict)
+                    
+                df_display = pd.DataFrame(table_rows)
+                st.dataframe(df_display, use_container_width=True, hide_index=True)
                 
-                row_dict = {
-                    "Rank": f"#{r['rank']}",
-                    "Candidate": f"User {cand_id}",
-                    score_col_name: f"{r['score']:.4f}" if isinstance(r["score"], float) else str(r["score"]),
-                    "Mutuals Count": r["num_mutual_friends"],
-                    "Mutual Friends": mutuals_str,
-                    "Total Friends": r["candidate_degree"]
-                }
-                if user_club != "Member":
-                    row_dict["Affiliation"] = cand_club
-                table_rows.append(row_dict)
-                
-            df_display = pd.DataFrame(table_rows)
-            st.dataframe(df_display, use_container_width=True, hide_index=True)
-            
-            st.info(
-                f"💡 **Recommendation Insight:** Evaluated candidate pool of {len(user_candidates)} eligible members. "
-                f"All candidates strictly exclude the query user and existing friends."
-            )
+                st.info(
+                    f"💡 **Recommendation Insight:** Evaluated candidate pool of {len(user_candidates)} eligible members. "
+                    f"All candidates strictly exclude the query user and existing friends."
+                )
             
         with col_viz:
             st.markdown("**Interactive Social Network Visualization:**")
@@ -438,33 +451,37 @@ def main():
             "Comparing how different link prediction paradigms prioritize candidate friends for the same user:"
         )
         
-        comp_rows = []
-        for rank in range(1, top_k + 1):
-            cn_i = cn_recs[rank - 1]
-            jac_i = jac_recs[rank - 1]
-            pa_i = pa_recs[rank - 1]
-            n2v_i = n2v_recs[rank - 1]
-            sup_i = sup_recs[rank - 1]
+        num_available = min(top_k, len(cn_recs), len(jac_recs), len(pa_recs), len(n2v_recs), len(sup_recs))
+        if num_available == 0:
+            st.info(f"ℹ️ No candidate recommendations to compare for User {selected_user} (0 eligible candidates in this network).")
+        else:
+            comp_rows = []
+            for rank in range(1, num_available + 1):
+                cn_i = cn_recs[rank - 1]
+                jac_i = jac_recs[rank - 1]
+                pa_i = pa_recs[rank - 1]
+                n2v_i = n2v_recs[rank - 1]
+                sup_i = sup_recs[rank - 1]
+                
+                comp_rows.append({
+                    "Rank": f"#{rank}",
+                    "Common Neighbors": f"User {cn_i['candidate_id']} ({cn_i['score']} mutuals)",
+                    "Jaccard": f"User {jac_i['candidate_id']} (J={jac_i['score']:.3f})",
+                    "Preferential Att.": f"User {pa_i['candidate_id']} (score={pa_i['score']})",
+                    "Node2Vec Cosine": f"User {n2v_i['candidate_id']} (cos={n2v_i['score']:.3f})",
+                    "Supervised LR": f"User {sup_i['candidate_id']} (P={sup_i['score']:.3f})",
+                })
+                
+            df_comp = pd.DataFrame(comp_rows)
+            st.dataframe(df_comp, use_container_width=True, hide_index=True)
             
-            comp_rows.append({
-                "Rank": f"#{rank}",
-                "Common Neighbors": f"User {cn_i['candidate_id']} ({cn_i['score']} mutuals)",
-                "Jaccard": f"User {jac_i['candidate_id']} (J={jac_i['score']:.3f})",
-                "Preferential Att.": f"User {pa_i['candidate_id']} (score={pa_i['score']})",
-                "Node2Vec Cosine": f"User {n2v_i['candidate_id']} (cos={n2v_i['score']:.3f})",
-                "Supervised LR": f"User {sup_i['candidate_id']} (P={sup_i['score']:.3f})",
-            })
-            
-        df_comp = pd.DataFrame(comp_rows)
-        st.dataframe(df_comp, use_container_width=True, hide_index=True)
-        
-        st.markdown("### 🔍 Critical Takeaways from Comparison")
-        st.markdown(
-            "- **The Hub Bias of Traditional Heuristics:** Common Neighbors and Preferential Attachment "
-            "often elevate the network's most connected nodes, regardless of local community affinity.\n"
-            "- **Homophily Discovery in Embedding Methods:** Node2Vec and Supervised Logistic Regression "
-            "prioritize candidates from the **same social cluster**, discovering multi-hop latent connections."
-        )
+            st.markdown("### 🔍 Critical Takeaways from Comparison")
+            st.markdown(
+                "- **The Hub Bias of Traditional Heuristics:** Common Neighbors and Preferential Attachment "
+                "often elevate the network's most connected nodes, regardless of local community affinity.\n"
+                "- **Homophily Discovery in Embedding Methods:** Node2Vec and Supervised Logistic Regression "
+                "prioritize candidates from the **same social cluster**, discovering multi-hop latent connections."
+            )
         
     # -------------------------------------------------------------
     # TAB 3: Model Evaluation Benchmark
