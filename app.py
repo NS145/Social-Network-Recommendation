@@ -132,6 +132,24 @@ def get_cached_models_and_embeddings(
     return embeddings, clf, metadata
 
 
+@st.cache_resource(show_spinner="Loading Graph Neural Network (GCN)...")
+def get_cached_gcn_model(_graph: nx.Graph) -> Optional[Tuple[Any, Any, Dict[Any, int]]]:
+    """Load pre-trained GCN link prediction model for Zachary's Karate Club."""
+    gcn_path = Path("models") / "gcn_link_predictor.pt"
+    if not gcn_path.is_file():
+        return None
+    try:
+        import torch
+        from src.gnn import prepare_pyg_link_data, GCNLinkPredictor
+        pyg_data, node_to_idx, _ = prepare_pyg_link_data(_graph, feature_type="identity")
+        model = GCNLinkPredictor(in_channels=_graph.number_of_nodes(), hidden_channels=32, out_channels=16)
+        model.load_state_dict(torch.load(gcn_path, map_location=torch.device("cpu")))
+        model.eval()
+        return model, pyg_data, node_to_idx
+    except Exception:
+        return None
+
+
 @st.cache_data(show_spinner="Computing algorithmic benchmarks...")
 def get_cached_evaluation_dataframe(
     _graph: nx.Graph,
@@ -234,14 +252,22 @@ def main():
         step=1
     )
     
+    gcn_bundle = None
+    if dataset_key == "karate":
+        gcn_bundle = get_cached_gcn_model(graph)
+
     algo_options = [
         "All Algorithms (Side-by-Side Comparison)",
         "Supervised Logistic Regression (Node2Vec + Hadamard)",
         "Node2Vec Embedding Cosine Similarity",
+    ]
+    if gcn_bundle is not None:
+        algo_options.append("Graph Convolutional Network (GCN)")
+    algo_options.extend([
         "Common Neighbors (CN)",
         "Jaccard Similarity Coefficient",
         "Preferential Attachment (PA)",
-    ]
+    ])
     
     selected_algo = st.sidebar.selectbox(
         "Recommendation Algorithm:",
@@ -320,6 +346,11 @@ def main():
     elif "Cosine" in selected_algo:
         current_recs = n2v_recs
         score_col_name = "Cosine Similarity"
+    elif "GCN" in selected_algo and gcn_bundle is not None:
+        gcn_model, gcn_data, gcn_node_to_idx = gcn_bundle
+        from src.gnn import recommend_gnn_links
+        current_recs = recommend_gnn_links(graph, gcn_model, gcn_data, gcn_node_to_idx, selected_user, top_k=top_k)
+        score_col_name = "P(Link) [GCN]"
     elif "Common Neighbors" in selected_algo:
         current_recs = cn_recs
         score_col_name = "Common Neighbors"
@@ -487,6 +518,14 @@ def main():
         )
         st.plotly_chart(eval_fig, use_container_width=True)
         
+        # Advanced Extension: GNN benchmark table if available
+        gnn_csv = Path("data") / "processed" / "stage8_gnn_evaluation_results.csv"
+        if dataset_key == "karate" and gnn_csv.is_file():
+            with st.expander("🚀 Advanced Extension: Graph Neural Networks (GCN & GraphSAGE) vs Shallow Baselines", expanded=True):
+                df_gnn = pd.read_csv(gnn_csv)
+                st.dataframe(df_gnn, use_container_width=True, hide_index=True)
+                st.caption("Deep message-passing GNNs trained end-to-end with inner-product decoding on identical held-out splits.")
+
         st.warning(
             "⚠️ **Academic Caveat:** In real-world social platforms, graph density is extremely low "
             "($\\rho \\sim 10^{-6}$). Real systems face extreme class imbalance, requiring models "
@@ -522,6 +561,10 @@ def main():
             st.latex(r"PA(u, v) = \text{deg}(u) \times \text{deg}(v)")
             st.caption("Models scale-free rich-get-richer attachment. Ranks candidates by global popularity.")
             
+            st.markdown("#### 6. Graph Convolutional Networks (GCN)")
+            st.latex(r"\mathbf{H}^{(l+1)} = \sigma \left( \mathbf{\tilde{D}}^{-\frac{1}{2}} \mathbf{\tilde{A}} \mathbf{\tilde{D}}^{-\frac{1}{2}} \mathbf{H}^{(l)} \mathbf{W}^{(l)} \right)")
+            st.caption("Localized spectral message passing with symmetric degree normalization and self-loops.")
+            
         with m_col2:
             st.markdown("#### 4. Node2Vec Biased Random Walks")
             st.latex(r"\pi_{vx} = \alpha_{pq}(t, x) \cdot w_{vx}")
@@ -534,6 +577,10 @@ def main():
             st.latex(r"\mathbf{x}_{(u, v)} = \mathbf{z}_u \odot \mathbf{z}_v \quad (\text{Hadamard Product})")
             st.latex(r"P(\text{Link} \mid u, v) = \sigma(\mathbf{w}^T \mathbf{x}_{(u, v)} + b)")
             st.caption("Trains Logistic Regression on symmetric Hadamard edge features from leak-free training embeddings.")
+
+            st.markdown("#### 7. GraphSAGE (Sample and Aggregate)")
+            st.latex(r"\mathbf{h}_v^{(l)} = \sigma \left( \mathbf{W}^{(l)} \cdot \left[ \mathbf{h}_v^{(l-1)} \,\|\, \frac{1}{|\mathcal{N}(v)|} \sum_{u \in \mathcal{N}(v)} \mathbf{h}_u^{(l-1)} \right] \right)")
+            st.caption("Inductive spatial aggregation combining current node state with neighborhood mean.")
 
 
 if __name__ == "__main__":

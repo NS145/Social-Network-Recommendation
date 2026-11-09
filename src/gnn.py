@@ -261,3 +261,4 @@ def recommend_gnn_links(
         item["rank"] = rank
         
     return top_recs
+

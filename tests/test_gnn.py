@@ -220,3 +220,4 @@ def test_recommend_gnn_links_edge_cases(karate_split):
     c_model = GCNLinkPredictor(in_channels=5, hidden_channels=8, out_channels=4)
     c_recs = recommend_gnn_links(clique, c_model, c_data, c_node_to_idx, user_id=0, top_k=3)
     assert c_recs == []
+

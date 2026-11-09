@@ -4,5 +4,5 @@ structural graph analysis, link prediction recommendations, node embeddings,
 and model evaluation.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
