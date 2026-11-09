@@ -166,3 +166,4 @@ def test_visualize_network(tmp_path):
     
     assert result_path.is_file()
     assert result_path.stat().st_size > 1000  # File should not be empty
+

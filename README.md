@@ -95,14 +95,15 @@ social-network-recommendation/
 ## 🚀 Development Status
 
 - [x] **Stage 0: Project Initialization & Environment Setup**
-- [x] **Stage 1: Dataset Acquisition & Graph Construction** (Completed)
-  - Zachary's Karate Club network loaded (|V|=34, |E|=78)
-  - Reusable data loader with raw edge-list export
-  - Undirected simple graph builder with self-loop filtering & deduplication
-  - Comprehensive topological analysis (degree, density=0.139, clustering=0.5706)
-  - Network visualization generated in `reports/figures/karate_club_network.png`
-  - 16 unit tests passing
-- [ ] **Stage 2: Traditional Graph-based Recommendation Algorithms**
+- [x] **Stage 1: Dataset Acquisition & Graph Construction**
+- [x] **Stage 2: Traditional Graph-based Recommendation Algorithms** (Completed)
+  - Common Neighbors heuristic with mutual friends tracking
+  - Jaccard Similarity Coefficient with degree-normalization
+  - Preferential Attachment degree-product link prediction
+  - Candidate filtering: strict self-exclusion & existing-friend exclusion
+  - Isolated and fully-connected user edge cases handled
+  - Comparative ranking evaluation table
+  - 25 automated unit tests passing
 - [ ] **Stage 3: Node2Vec & Node Embeddings**
 - [ ] **Stage 4: Supervised Link Prediction**
 - [ ] **Stage 5: Model Evaluation & Comparison**
