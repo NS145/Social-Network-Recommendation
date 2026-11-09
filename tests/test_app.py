@@ -110,3 +110,4 @@ def test_all_algorithms_ui_pipeline():
             assert cand != user, f"{algo_name} recommended self!"
             assert cand not in friends, f"{algo_name} recommended existing friend {cand}!"
             assert cand in candidates, f"{algo_name} recommended non-candidate {cand}!"
+

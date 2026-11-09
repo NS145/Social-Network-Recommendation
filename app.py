@@ -1,9 +1,10 @@
 """Streamlit Application Entry Point.
 Social Network Recommendation Engine using Graph Representation Learning and Link Prediction.
+Supports multi-dataset selection: Zachary's Karate Club and Stanford SNAP Facebook.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -12,7 +13,7 @@ import networkx as nx
 from sklearn.linear_model import LogisticRegression
 
 # Import modular src components
-from src.data_loader import load_karate_club_graph
+from src.data_loader import load_karate_club_graph, load_snap_facebook_graph
 from src.graph_analysis import compute_network_statistics, create_interactive_network_figure
 from src.recommendation import (
     get_candidate_users,
@@ -43,29 +44,39 @@ from src.evaluation import evaluate_all_models
 # ============================================================================
 
 @st.cache_resource(show_spinner="Loading social network graph...")
-def get_cached_graph_and_stats() -> Tuple[nx.Graph, Dict[str, Any]]:
-    """Load Zachary's Karate Club graph and compute network statistics once."""
-    graph = load_karate_club_graph()
+def get_cached_graph_and_stats(dataset_key: str = "karate") -> Tuple[nx.Graph, Dict[str, Any]]:
+    """Load graph and compute network statistics based on dataset selection."""
+    if dataset_key == "facebook_ego0":
+        graph = load_snap_facebook_graph(ego_user=0)
+    elif dataset_key == "facebook_full":
+        graph = load_snap_facebook_graph()
+    else:
+        graph = load_karate_club_graph()
+        
     stats = compute_network_statistics(graph)
     return graph, stats
 
 
 @st.cache_resource(show_spinner="Loading or training Machine Learning models...")
 def get_cached_models_and_embeddings(
-    _graph: nx.Graph
+    _graph: nx.Graph,
+    dataset_key: str = "karate"
 ) -> Tuple[Dict[Any, np.ndarray], LogisticRegression, Dict[str, Any]]:
     """Load pre-trained Node2Vec embeddings and Logistic Regression model.
     
     Gracefully handles missing files by training them on the fly if necessary.
     """
     models_dir = Path("models")
-    emb_path = models_dir / "node2vec_karate_embeddings.pkl"
-    clf_path = models_dir / "link_prediction_logistic_regression.pkl"
-    
-    embeddings: Dict[Any, np.ndarray] = {}
-    clf: Optional[LogisticRegression] = None
-    metadata: Dict[str, Any] = {}
-    
+    if dataset_key == "facebook_ego0":
+        emb_path = models_dir / "node2vec_facebook_ego0_embeddings.pkl"
+        clf_path = models_dir / "link_prediction_facebook_ego0_lr.pkl"
+    elif dataset_key == "facebook_full":
+        emb_path = models_dir / "node2vec_facebook_full_embeddings.pkl"
+        clf_path = models_dir / "link_prediction_facebook_full_lr.pkl"
+    else:
+        emb_path = models_dir / "node2vec_karate_embeddings.pkl"
+        clf_path = models_dir / "link_prediction_logistic_regression.pkl"
+        
     # Check if pre-trained artifacts exist
     if emb_path.is_file() and clf_path.is_file():
         try:
@@ -81,11 +92,15 @@ def get_cached_models_and_embeddings(
     g_train, train_pos, test_pos = split_edges(_graph, test_ratio=test_ratio, seed=seed)
     train_neg, test_neg = sample_negative_edges(_graph, len(train_pos), len(test_pos), seed=seed)
     
+    # Configure walk length based on graph size
+    walk_len = 8 if _graph.number_of_nodes() > 500 else 10
+    num_w = 10 if _graph.number_of_nodes() > 500 else 25
+    
     n2v = train_node2vec(
         g_train,
         dimensions=16,
-        walk_length=10,
-        num_walks=30,
+        walk_length=walk_len,
+        num_walks=num_w,
         p=1.0,
         q=1.0,
         window=5,
@@ -99,6 +114,7 @@ def get_cached_models_and_embeddings(
     clf = train_link_prediction_model(X_train, y_train, seed=seed)
     
     metadata = {
+        "dataset_key": dataset_key,
         "model_type": "LogisticRegression",
         "operator": "hadamard",
         "dimensions": 16,
@@ -121,10 +137,15 @@ def get_cached_evaluation_dataframe(
     _graph: nx.Graph,
     _embeddings: Dict[Any, np.ndarray],
     _clf: LogisticRegression,
+    dataset_key: str = "karate",
     k: int = 5
 ) -> pd.DataFrame:
     """Load or compute benchmark evaluation metrics."""
-    processed_csv = Path("data") / "processed" / "model_evaluation_results.csv"
+    if dataset_key == "facebook_ego0":
+        processed_csv = Path("data") / "processed" / "stage7_facebook_evaluation_results.csv"
+    else:
+        processed_csv = Path("data") / "processed" / "model_evaluation_results.csv"
+        
     if processed_csv.is_file():
         try:
             return pd.read_csv(processed_csv)
@@ -132,7 +153,7 @@ def get_cached_evaluation_dataframe(
             pass
             
     g_train, train_pos, test_pos = split_edges(_graph, test_ratio=0.2, seed=42)
-    train_neg, test_neg = sample_negative_edges(_graph, len(train_pos), len(test_pos), seed=42)
+    train_neg, test_neg = sample_negative_edges(_graph, len(train_pos), len(test_pos), seed=seed)
     
     return evaluate_all_models(
         graph_train=g_train,
@@ -157,33 +178,54 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Load core data
-    graph, stats = get_cached_graph_and_stats()
-    embeddings, clf_model, model_meta = get_cached_models_and_embeddings(graph)
-    
     # -------------------------------------------------------------
-    # Sidebar: User Controls & Algorithm Configuration
+    # Sidebar: Dataset Selection & User Controls
     # -------------------------------------------------------------
     st.sidebar.title("⚙️ Control Panel")
     
-    st.sidebar.markdown("### 1. User Selection")
+    st.sidebar.markdown("### 1. Dataset Selection")
+    dataset_map = {
+        "Zachary's Karate Club (34 nodes, 78 edges)": "karate",
+        "SNAP Facebook - Ego Network 0 (348 nodes, 2,866 edges)": "facebook_ego0",
+        "SNAP Facebook - Full Network (4,039 nodes, 88,234 edges)": "facebook_full"
+    }
+    selected_dataset_name = st.sidebar.selectbox(
+        "Choose Social Network:",
+        options=list(dataset_map.keys()),
+        index=0,
+        help="Switch between the classical Karate Club dataset and the real-world SNAP Facebook network."
+    )
+    dataset_key = dataset_map[selected_dataset_name]
+    
+    # Load chosen graph and models
+    graph, stats = get_cached_graph_and_stats(dataset_key)
+    embeddings, clf_model, model_meta = get_cached_models_and_embeddings(graph, dataset_key=dataset_key)
+    
+    st.sidebar.markdown("### 2. User Selection")
     all_nodes = sorted(list(graph.nodes()))
     
-    # Format node labels with affiliation and degree
+    # Format node labels with affiliation/degree
     def format_user_label(node_id: int) -> str:
         club = graph.nodes[node_id].get("club", "Member")
         deg = graph.degree(node_id)
-        return f"User {node_id} ({club}, {deg} friends)"
+        return f"User {node_id} ({deg} friends)" if club == "Member" else f"User {node_id} ({club}, {deg} friends)"
+        
+    # Provide a curated default node for convenience
+    default_index = 0
+    if dataset_key == "facebook_ego0" and 0 in all_nodes:
+        default_index = all_nodes.index(0)
+    elif dataset_key == "facebook_full" and 0 in all_nodes:
+        default_index = all_nodes.index(0)
         
     selected_user = st.sidebar.selectbox(
         "Select Active User:",
         options=all_nodes,
-        index=0,
+        index=default_index,
         format_func=format_user_label,
         help="Select a social network member to generate friend recommendations."
     )
     
-    st.sidebar.markdown("### 2. Recommendation Settings")
+    st.sidebar.markdown("### 3. Recommendation Settings")
     top_k = st.sidebar.slider(
         "Number of Recommendations (Top-K):",
         min_value=3,
@@ -210,10 +252,10 @@ def main():
     
     st.sidebar.markdown("---")
     st.sidebar.markdown(
-        "**Dataset:** Zachary's Karate Club  \n"
-        "**Nodes (|V|):** 34 members  \n"
-        "**Edges (|E|):** 78 friendships  \n"
-        "**Model:** Node2Vec ($d=16$) + Logistic Regression"
+        f"**Active Dataset:** {selected_dataset_name.split('(')[0].strip()}  \n"
+        f"**Total Nodes (|V|):** {stats['num_nodes']}  \n"
+        f"**Total Edges (|E|):** {stats['num_edges']}  \n"
+        f"**Model Embedding Dim:** 16"
     )
     
     # -------------------------------------------------------------
@@ -226,7 +268,7 @@ def main():
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Total Members (|V|)", stats["num_nodes"])
     col2.metric("Total Friendships (|E|)", stats["num_edges"])
-    col3.metric("Network Density", f"{stats['density']:.3f}")
+    col3.metric("Network Density", f"{stats['density']:.4f}")
     col4.metric("Average Friends", f"{stats['average_degree']:.2f}")
     col5.metric("Avg Clustering", f"{stats['average_clustering_coefficient']:.3f}")
     
@@ -236,16 +278,21 @@ def main():
     user_friends = sorted(list(graph.neighbors(selected_user)))
     user_candidates = sorted(list(get_candidate_users(graph, selected_user)))
     
-    with st.expander(f"👤 Active User Profile: User {selected_user} ({user_club})", expanded=True):
+    with st.expander(f"👤 Active User Profile: User {selected_user} ({user_degree} friends)", expanded=True):
         pcol1, pcol2 = st.columns([1, 2])
         with pcol1:
             st.markdown(f"- **User Identifier:** `Node {selected_user}`")
-            st.markdown(f"- **Faction Affiliation:** `{user_club}`")
+            if user_club != "Member":
+                st.markdown(f"- **Faction Affiliation:** `{user_club}`")
             st.markdown(f"- **Direct Friends Count:** `{user_degree}`")
             st.markdown(f"- **Eligible Candidates:** `{len(user_candidates)} members`")
         with pcol2:
             st.markdown(f"**Current Friends List ({len(user_friends)}):**")
-            st.write(", ".join([f"**User {f}**" for f in user_friends]))
+            sample_friends = user_friends[:30]
+            friends_text = ", ".join([f"**User {f}**" for f in sample_friends])
+            if len(user_friends) > 30:
+                friends_text += f", ... (+{len(user_friends) - 30} more)"
+            st.write(friends_text)
             
     # -------------------------------------------------------------
     # Compute Recommendations for Selected User
@@ -316,26 +363,33 @@ def main():
                 cand_club = graph.nodes[cand_id].get("club", "Member")
                 mutuals_str = ", ".join(map(str, r["mutual_friends"])) if r["mutual_friends"] else "None"
                 
-                table_rows.append({
+                row_dict = {
                     "Rank": f"#{r['rank']}",
                     "Candidate": f"User {cand_id}",
-                    "Affiliation": cand_club,
                     score_col_name: f"{r['score']:.4f}" if isinstance(r["score"], float) else str(r["score"]),
                     "Mutuals Count": r["num_mutual_friends"],
                     "Mutual Friends": mutuals_str,
                     "Total Friends": r["candidate_degree"]
-                })
+                }
+                if user_club != "Member":
+                    row_dict["Affiliation"] = cand_club
+                table_rows.append(row_dict)
                 
             df_display = pd.DataFrame(table_rows)
             st.dataframe(df_display, use_container_width=True, hide_index=True)
             
             st.info(
-                f"💡 **Homophily Insight:** Notice how {selected_algo} scores candidates based on "
-                f"their proximity to User {selected_user}'s faction (`{user_club}`) and mutual network connections."
+                f"💡 **Recommendation Insight:** Evaluated candidate pool of {len(user_candidates)} eligible members. "
+                f"All candidates strictly exclude the query user and existing friends."
             )
             
         with col_viz:
             st.markdown("**Interactive Social Network Visualization:**")
+            if graph.number_of_nodes() > 350:
+                st.caption(
+                    "ℹ️ For large graphs, an **ego-neighborhood view** (query user, friends, and top candidates) "
+                    "is dynamically rendered for responsive interaction."
+                )
             fig = create_interactive_network_figure(
                 graph,
                 selected_user=selected_user,
@@ -376,24 +430,22 @@ def main():
         st.markdown("### 🔍 Critical Takeaways from Comparison")
         st.markdown(
             "- **The Hub Bias of Traditional Heuristics:** Common Neighbors and Preferential Attachment "
-            "overwhelmingly recommend the network's most connected nodes (like Node 33 and Node 32), "
-            "even if they belong to an opposing social community.\n"
+            "often elevate the network's most connected nodes, regardless of local community affinity.\n"
             "- **Homophily Discovery in Embedding Methods:** Node2Vec and Supervised Logistic Regression "
-            "prioritize candidates from the **same social cluster** (e.g. Node 16 for User 0), accurately "
-            "capturing community structure learned via biased random walks."
+            "prioritize candidates from the **same social cluster**, discovering multi-hop latent connections."
         )
         
     # -------------------------------------------------------------
     # TAB 3: Model Evaluation Benchmark
     # -------------------------------------------------------------
     with tab_eval:
-        st.subheader("Model Evaluation on Held-Out Test Edges")
+        st.subheader(f"Model Evaluation Benchmark on Held-Out Test Edges ({selected_dataset_name.split('(')[0].strip()})")
         st.markdown(
             r"All algorithms were benchmarked under **identical, leak-free test conditions**: "
             r"evaluating on held-out positive test edges ($20\%$) and disjoint negative edge samples."
         )
         
-        df_eval = get_cached_evaluation_dataframe(graph, embeddings, clf_model, k=5)
+        df_eval = get_cached_evaluation_dataframe(graph, embeddings, clf_model, dataset_key=dataset_key, k=5)
         st.dataframe(df_eval, use_container_width=True, hide_index=True)
         
         # Plot evaluation results
@@ -426,7 +478,7 @@ def main():
         ))
         
         eval_fig.update_layout(
-            title="Benchmark Comparison Across All Metrics",
+            title=f"Benchmark Metrics Comparison ({selected_dataset_name.split('(')[0].strip()})",
             barmode="group",
             yaxis=dict(title="Score", range=[0.0, 1.0]),
             xaxis=dict(tickangle=-20),
@@ -445,7 +497,16 @@ def main():
     # TAB 4: Theory & Mathematical Formulations
     # -------------------------------------------------------------
     with tab_theory:
-        st.subheader("Mathematical Foundations")
+        st.subheader("Mathematical Foundations & Dataset Provenance")
+        
+        st.markdown("#### 📁 Dataset Provenance & Proven Properties")
+        st.markdown(
+            "- **Stanford SNAP Facebook Social Circles (McAuley & Leskovec, NIPS 2012):** "
+            "Contains 4,039 survey participants and 88,234 mutual friendships collected from 10 Facebook ego networks. "
+            "*Density:* 0.0108 (~1.08%). *Average Degree:* 43.69. *Average Clustering:* 0.6055.\n"
+            "- **Zachary's Karate Club (Zachary, 1977):** "
+            "Canonical 34-member social fission network. *Density:* 0.1390. *Average Degree:* 4.59."
+        )
         
         m_col1, m_col2 = st.columns(2)
         with m_col1:

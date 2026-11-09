@@ -100,15 +100,14 @@ social-network-recommendation/
 - [x] **Stage 3: Node2Vec & Node Embeddings**
 - [x] **Stage 4: Supervised Link Prediction**
 - [x] **Stage 5: Model Evaluation & Comparison**
-- [x] **Stage 6: Streamlit Application** (Completed)
-  - Interactive multi-tab web dashboard in `app.py`
-  - Active user profile inspection, degree, and current friends viewer
-  - Top-K friend recommendations across all 5 link prediction algorithms
-  - 2D interactive Plotly network visualizer with highlighted query node, friends, and predicted links
-  - Side-by-side algorithmic ranking comparison view
-  - Comprehensive model evaluation benchmark dashboard with interactive bar charts
-  - Cached graph and model loaders (`@st.cache_resource`, `@st.cache_data`)
-  - 52 automated unit tests passing
-- [ ] **Stage 7: Real-world Dataset Integration (SNAP Facebook)**
+- [x] **Stage 6: Streamlit Application**
+- [x] **Stage 7: Real-world Dataset Integration (SNAP Facebook)** (Completed)
+  - Stanford SNAP Facebook Social Circles dataset integrated (4,039 nodes, 88,234 edges)
+  - Multi-scale support: Full Facebook network and Facebook Ego-0 subnetwork (348 nodes, 2,866 edges)
+  - Structural comparison: density dropped from 13.9% (Karate) to 1.08% (Facebook Full)
+  - Computational benchmark: full graph parsed in 0.09s; Node2Vec trained in 35s
+  - Evaluated on Facebook Ego-0: Common Neighbors (ROC-AUC 0.9368), Node2Vec (ROC-AUC 0.8780)
+  - Streamlit dashboard updated with dynamic dataset selection and smart ego-neighborhood rendering
+  - 58 automated unit tests passing
 - [ ] **Stage 8: Optional GNN Extension**
 

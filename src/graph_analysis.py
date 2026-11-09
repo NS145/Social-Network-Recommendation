@@ -221,13 +221,16 @@ def create_interactive_network_figure(
     if not isinstance(graph, nx.Graph):
         raise TypeError(f"Expected networkx.Graph, got {type(graph).__name__}")
         
-    pos = nx.spring_layout(graph, seed=seed, k=0.35, iterations=50)
-    
-    friends_set: Set[Any] = set()
+    # Scale down large graphs for responsive browser visualization
     rec_set: Set[Any] = set(recommended_candidates or [])
-    
+    friends_set: Set[Any] = set()
     if selected_user is not None and selected_user in graph:
         friends_set = set(graph.neighbors(selected_user))
+        if graph.number_of_nodes() > 350:
+            focus_nodes = friends_set | rec_set | {selected_user}
+            graph = graph.subgraph(focus_nodes).copy()
+            
+    pos = nx.spring_layout(graph, seed=seed, k=0.35, iterations=50)
         
     # 1. Edge traces
     default_edge_x, default_edge_y = [], []
