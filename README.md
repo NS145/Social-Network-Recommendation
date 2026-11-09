@@ -96,15 +96,14 @@ social-network-recommendation/
 
 - [x] **Stage 0: Project Initialization & Environment Setup**
 - [x] **Stage 1: Dataset Acquisition & Graph Construction**
-- [x] **Stage 2: Traditional Graph-based Recommendation Algorithms** (Completed)
-  - Common Neighbors heuristic with mutual friends tracking
-  - Jaccard Similarity Coefficient with degree-normalization
-  - Preferential Attachment degree-product link prediction
-  - Candidate filtering: strict self-exclusion & existing-friend exclusion
-  - Isolated and fully-connected user edge cases handled
-  - Comparative ranking evaluation table
-  - 25 automated unit tests passing
-- [ ] **Stage 3: Node2Vec & Node Embeddings**
+- [x] **Stage 2: Traditional Graph-based Recommendation Algorithms**
+- [x] **Stage 3: Node2Vec & Node Embeddings** (Completed)
+  - Biased 2nd-order random walks with flexible return (p) and in-out (q) parameters
+  - Continuous low-dimensional node representation learning via Skip-gram Word2Vec
+  - Serialization of trained models and embedding dictionaries in `models/`
+  - Cosine similarity ranking engine with strict candidate filtering
+  - Side-by-side comparison illustrating homophily vs. 1-hop heuristic hub bias
+  - 34 automated unit tests passing
 - [ ] **Stage 4: Supervised Link Prediction**
 - [ ] **Stage 5: Model Evaluation & Comparison**
 - [ ] **Stage 6: Streamlit Application**
