@@ -4,10 +4,11 @@ connected components, clustering coefficients) and produces reproducible network
 """
 
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 
 def compute_network_statistics(graph: nx.Graph) -> Dict[str, Any]:
@@ -187,3 +188,185 @@ def visualize_network(
     plt.close()
     
     return output_path
+
+
+def create_interactive_network_figure(
+    graph: nx.Graph,
+    selected_user: Optional[Any] = None,
+    recommended_candidates: Optional[List[Any]] = None,
+    seed: int = 42,
+    title: str = "Interactive Social Network Graph"
+) -> go.Figure:
+    """Construct an interactive Plotly 2D network diagram.
+    
+    Visual Highlights:
+    - Default edges: Subtle neutral gray lines.
+    - Active edges (Selected User <-> Friends): Solid blue lines.
+    - Potential links (Selected User <-> Recommended): Dashed green lines.
+    - Selected user: Highlighted in crimson/gold.
+    - Existing friends: Highlighted in blue.
+    - Recommended nodes: Highlighted in green.
+    - Community members: Neutral slate.
+    
+    Args:
+        graph: Undirected NetworkX graph.
+        selected_user: Optional target node ID to focus on.
+        recommended_candidates: Optional list of recommended node IDs.
+        seed: Random seed for reproducible spring layout.
+        title: Plot title.
+        
+    Returns:
+        go.Figure: Interactive Plotly figure.
+    """
+    if not isinstance(graph, nx.Graph):
+        raise TypeError(f"Expected networkx.Graph, got {type(graph).__name__}")
+        
+    pos = nx.spring_layout(graph, seed=seed, k=0.35, iterations=50)
+    
+    friends_set: Set[Any] = set()
+    rec_set: Set[Any] = set(recommended_candidates or [])
+    
+    if selected_user is not None and selected_user in graph:
+        friends_set = set(graph.neighbors(selected_user))
+        
+    # 1. Edge traces
+    default_edge_x, default_edge_y = [], []
+    active_edge_x, active_edge_y = [], []
+    
+    for u, v in graph.edges():
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        
+        # Check if edge connects selected user to an existing friend
+        if selected_user is not None and (u == selected_user or v == selected_user):
+            active_edge_x.extend([x0, x1, None])
+            active_edge_y.extend([y0, y1, None])
+        else:
+            default_edge_x.extend([x0, x1, None])
+            default_edge_y.extend([y0, y1, None])
+            
+    fig = go.Figure()
+    
+    # Trace 1: Default Edges
+    if default_edge_x:
+        fig.add_trace(go.Scatter(
+            x=default_edge_x,
+            y=default_edge_y,
+            line=dict(width=1.0, color="#d0d0d0"),
+            hoverinfo="none",
+            mode="lines",
+            name="Friendship Edge",
+            showlegend=True
+        ))
+        
+    # Trace 2: Active Friendship Edges
+    if active_edge_x:
+        fig.add_trace(go.Scatter(
+            x=active_edge_x,
+            y=active_edge_y,
+            line=dict(width=2.5, color="#1f77b4"),
+            hoverinfo="none",
+            mode="lines",
+            name="Existing Friendships",
+            showlegend=True
+        ))
+        
+    # Trace 3: Predicted / Recommended Links (Dashed Green)
+    if selected_user is not None and rec_set:
+        rec_edge_x, rec_edge_y = [], []
+        x0, y0 = pos[selected_user]
+        for cand in rec_set:
+            if cand in pos:
+                x1, y1 = pos[cand]
+                rec_edge_x.extend([x0, x1, None])
+                rec_edge_y.extend([y0, y1, None])
+        if rec_edge_x:
+            fig.add_trace(go.Scatter(
+                x=rec_edge_x,
+                y=rec_edge_y,
+                line=dict(width=2.0, color="#2ca02c", dash="dash"),
+                hoverinfo="none",
+                mode="lines",
+                name="Predicted Link",
+                showlegend=True
+            ))
+            
+    # 2. Node Categories
+    categories = {
+        "Selected User": {"nodes": [], "color": "#d62728", "size": 24, "symbol": "circle"},
+        "Existing Friends": {"nodes": [], "color": "#1f77b4", "size": 18, "symbol": "circle"},
+        "Recommended Friends": {"nodes": [], "color": "#2ca02c", "size": 20, "symbol": "diamond"},
+        "Other Members": {"nodes": [], "color": "#7f7f7f", "size": 14, "symbol": "circle"},
+    }
+    
+    degrees = dict(graph.degree())
+    
+    for node in graph.nodes():
+        if selected_user is not None and node == selected_user:
+            categories["Selected User"]["nodes"].append(node)
+        elif node in friends_set:
+            categories["Existing Friends"]["nodes"].append(node)
+        elif node in rec_set:
+            categories["Recommended Friends"]["nodes"].append(node)
+        else:
+            categories["Other Members"]["nodes"].append(node)
+            
+    # Add Node traces
+    for cat_name, cat_data in categories.items():
+        node_list = cat_data["nodes"]
+        if not node_list:
+            continue
+            
+        x_vals = [pos[n][0] for n in node_list]
+        y_vals = [pos[n][1] for n in node_list]
+        labels = [str(n) for n in node_list]
+        
+        hover_texts = []
+        for n in node_list:
+            club = graph.nodes[n].get("club", "N/A")
+            deg = degrees[n]
+            hover_texts.append(
+                f"<b>User ID: {n}</b><br>"
+                f"Role: {cat_name}<br>"
+                f"Affiliation: {club}<br>"
+                f"Total Friends: {deg}"
+            )
+            
+        fig.add_trace(go.Scatter(
+            x=x_vals,
+            y=y_vals,
+            mode="markers+text",
+            text=labels,
+            textposition="middle center",
+            textfont=dict(color="#ffffff", size=9, family="sans-serif"),
+            hoverinfo="text",
+            hovertext=hover_texts,
+            marker=dict(
+                size=cat_data["size"],
+                color=cat_data["color"],
+                symbol=cat_data["symbol"],
+                line=dict(width=1.5, color="#1a1a1a")
+            ),
+            name=cat_name,
+            showlegend=True
+        ))
+        
+    fig.update_layout(
+        title=dict(text=title, x=0.5, font=dict(size=16, family="sans-serif")),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(255, 255, 255, 0.6)"
+        ),
+        hovermode="closest",
+        margin=dict(l=10, r=10, t=50, b=10),
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        plot_bgcolor="rgba(248, 249, 250, 1.0)",
+    )
+    
+    return fig

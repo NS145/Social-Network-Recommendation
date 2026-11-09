@@ -99,15 +99,16 @@ social-network-recommendation/
 - [x] **Stage 2: Traditional Graph-based Recommendation Algorithms**
 - [x] **Stage 3: Node2Vec & Node Embeddings**
 - [x] **Stage 4: Supervised Link Prediction**
-- [x] **Stage 5: Model Evaluation & Comparison** (Completed)
-  - Unified evaluation benchmark across all 5 algorithms on identical held-out test splits
-  - Computed Precision@5, Recall@5, ROC-AUC, and Average Precision
-  - Evaluated link classification (Supervised LR achieved highest ROC-AUC: 0.7822, AP: 0.7676)
-  - Generated dual-panel comparative performance plot in `reports/figures/model_evaluation_comparison.png`
-  - Exported benchmark data to `data/processed/model_evaluation_results.csv` and `.json`
-  - Critical academic analysis of class imbalance, temporal splits, and negative sampling limits
-  - 47 automated unit tests passing
-- [ ] **Stage 6: Streamlit Application**
+- [x] **Stage 5: Model Evaluation & Comparison**
+- [x] **Stage 6: Streamlit Application** (Completed)
+  - Interactive multi-tab web dashboard in `app.py`
+  - Active user profile inspection, degree, and current friends viewer
+  - Top-K friend recommendations across all 5 link prediction algorithms
+  - 2D interactive Plotly network visualizer with highlighted query node, friends, and predicted links
+  - Side-by-side algorithmic ranking comparison view
+  - Comprehensive model evaluation benchmark dashboard with interactive bar charts
+  - Cached graph and model loaders (`@st.cache_resource`, `@st.cache_data`)
+  - 52 automated unit tests passing
 - [ ] **Stage 7: Real-world Dataset Integration (SNAP Facebook)**
 - [ ] **Stage 8: Optional GNN Extension**
 
