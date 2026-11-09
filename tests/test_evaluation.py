@@ -138,3 +138,4 @@ def test_plot_evaluation_comparison(tmp_path):
     
     assert result.is_file()
     assert result.stat().st_size > 1000
+
