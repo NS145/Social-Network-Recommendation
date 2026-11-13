@@ -10,6 +10,8 @@
 
 An end-to-end Graph Machine Learning system that predicts missing edges and recommends social connections by bridging **classical graph topology**, **shallow representation learning (Node2Vec)**, and **deep message-passing Graph Neural Networks (GCN & GraphSAGE)**. Features an interactive **Streamlit** dashboard, strict leak-free evaluation pipelines, and multi-scale validation across **Zachary's Karate Club** and **Stanford SNAP Facebook Social Circles**.
 
+> 📖 **Theory & Conceptual Guide:** For a simple, intuitive A-to-Z walkthrough of the project's logic, model mechanics, datasets, metrics, and presentation Q&A, see the [Theory & Implementation Guide](docs/THEORY_AND_IMPLEMENTATION_GUIDE.md).
+
 ---
 
 ## 📌 Table of Contents
