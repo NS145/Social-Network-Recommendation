@@ -11,6 +11,8 @@
 An end-to-end Graph Machine Learning system that predicts missing edges and recommends social connections by bridging **classical graph topology**, **shallow representation learning (Node2Vec)**, and **deep message-passing Graph Neural Networks (GCN & GraphSAGE)**. Features an interactive **Streamlit** dashboard, strict leak-free evaluation pipelines, and multi-scale validation across **Zachary's Karate Club** and **Stanford SNAP Facebook Social Circles**.
 
 > 📖 **Theory & Conceptual Guide:** For a simple, intuitive A-to-Z walkthrough of the project's logic, model mechanics, datasets, metrics, and presentation Q&A, see the [Theory & Implementation Guide](docs/THEORY_AND_IMPLEMENTATION_GUIDE.md).
+>
+> 📄 **Academic Project Report (PDF):** Download the concise 3-page summary report: [Social_Network_Recommendation_Report.pdf](docs/Social_Network_Recommendation_Report.pdf) (Authors: **N S Balaji** - RA2311056010012, **Yuvraj** - RA2311056010026).
 
 ---
 
@@ -467,6 +469,14 @@ pytest tests/ -v
    - Hamilton, W. L., Ying, R., & Leskovec, J. (2017). *Inductive Representation Learning on Large Graphs.* Advances in Neural Information Processing Systems (NeurIPS '17), 1024-1034.
 5. **SNAP Facebook Dataset:**
    - McAuley, J., & Leskovec, J. (2012). *Learning to Discover Social Circles in Ego Networks.* Advances in Neural Information Processing Systems (NeurIPS '12), 539-547.
+
+---
+
+## 👥 Authors
+- **N S Balaji** (Registration No: `RA2311056010012`)
+- **Yuvraj** (Registration No: `RA2311056010026`)
+
+*SRM Institute of Science and Technology — Applied Machine Learning Project*
 
 ---
 
