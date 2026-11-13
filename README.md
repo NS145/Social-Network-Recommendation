@@ -5,7 +5,7 @@
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-2.5%2B-3C2179.svg)](https://pyg.org/)
 [![NetworkX](https://img.shields.io/badge/NetworkX-3.2-orange.svg)](https://networkx.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.37-FF4B4B.svg)](https://streamlit.io/)
-[![Unit Tests](https://img.shields.io/badge/tests-66%20passed-brightgreen.svg)](tests/)
+[![Unit Tests](https://img.shields.io/badge/tests-67%20passed-brightgreen.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An end-to-end Graph Machine Learning system that predicts missing edges and recommends social connections by bridging **classical graph topology**, **shallow representation learning (Node2Vec)**, and **deep message-passing Graph Neural Networks (GCN & GraphSAGE)**. Features an interactive **Streamlit** dashboard, strict leak-free evaluation pipelines, and multi-scale validation across **Zachary's Karate Club** and **Stanford SNAP Facebook Social Circles**.
@@ -17,6 +17,10 @@ An end-to-end Graph Machine Learning system that predicts missing edges and reco
 ## 📌 Table of Contents
 - [Executive Overview](#-executive-overview)
 - [System Architecture](#-system-architecture)
+- [Live Web Application & Sample Outputs](#-live-web-application--sample-outputs)
+  - [Tab 1: Top-5 Friend Recommendations](#sample-output-1-top-5-friend-recommendations-tab-1)
+  - [Tab 2: Side-by-Side Algorithmic Comparison](#sample-output-2-side-by-side-algorithmic-comparison-tab-2)
+  - [Tab 3: SNAP Facebook Large-Scale Recommendations](#sample-output-3-real-world-snap-facebook-recommendations-user-9)
 - [Algorithmic Formulations](#-algorithmic-formulations)
   - [1. Topological Heuristics](#1-topological-heuristics)
   - [2. Node2Vec Representation Learning](#2-node2vec-representation-learning)
@@ -97,6 +101,74 @@ This project implements a complete, leak-free machine learning workflow:
 │   • Real-time candidate recommendation ranking & Metric dashboard      │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🖥️ Live Web Application & Sample Outputs
+
+The interactive web dashboard (`app.py`) provides an intuitive graphical interface for social network exploration, recommendation ranking, and multi-algorithm evaluation.
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⚙️ Control Panel          │ 🕸️ Social Network Recommendation Engine                     │
+│ 1. Dataset Selection     │ ────────────────────────────────────────────────────────── │
+│    [Karate Club ▼]       │ Members: 34 │ Friendships: 78 │ Density: 0.1390 │ Avg Deg: 4.59│
+│ 2. Active User Selector  │ ────────────────────────────────────────────────────────── │
+│    [User 0 (16 friends)▼]│ 👤 User 0 Profile: Faction 'Mr. Hi' | 16 Friends | 17 Cand. │
+│ 3. Recommendations (K)   │ ┌────────────────────────────────────────────────────────┐ │
+│    [───●──────] 5        │ │ 🎯 Recommendations │ 📊 Comparison │ 📈 Benchmark │ 🧠 │ │
+│ 4. Model Paradigm        │ └────────────────────────────────────────────────────────┘ │
+│    [Supervised LR ▼]     │ [ Top-5 Candidate Table ]     [ Interactive Plotly Graph ] │
+└──────────────────────────┴────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Sample Output 1: Top-5 Friend Recommendations (Tab 1)
+
+When **User 0 (Faction 'Mr. Hi')** is selected on **Zachary's Karate Club**, the system filters out all 16 existing friends and the query user itself, scoring all 17 eligible candidates. Below is the live tabular output from the dashboard:
+
+| Rank | Candidate | Affiliation | P(Friendship) | Mutuals Count | Mutual Friends | Candidate Total Friends |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **#1** | **User 16** | Mr. Hi | **0.7061** | 2 | 5, 6 | 2 |
+| **#2** | **User 9** | Officer | **0.3912** | 1 | 2 | 2 |
+| **#3** | **User 28** | Mr. Hi | **0.3204** | 2 | 2, 33 | 3 |
+| **#4** | **User 15** | Officer | **0.3114** | 0 | None | 2 |
+| **#5** | **User 20** | Officer | **0.2981** | 0 | None | 2 |
+
+> 💡 **Recommendation Insight:** In the web application, the interactive Plotly 2D canvas highlights User 0 in **bright gold**, direct connections in **blue**, and draws dashed **green connection lines** to recommended candidates.
+
+---
+
+### Sample Output 2: Side-by-Side Algorithmic Comparison (Tab 2)
+
+Comparing how each link prediction paradigm ranks candidate friends for the same active user:
+
+| Rank | Common Neighbors | Jaccard Similarity | Preferential Attachment | Node2Vec Cosine | Supervised LR | GCN Link Predictor |
+| :---: | :--- | :--- | :--- | :--- | :--- | :--- |
+| **#1** | User 33 (4 mutuals) ⚠️ | User 33 (J=0.138) ⚠️ | User 33 (deg product: 272) ⚠️ | **User 16 (cos: 0.951)** | **User 16 (P: 0.706)** | **User 30 (P: 1.000)** |
+| **#2** | User 32 (3 mutuals) ⚠️ | User 16 (J=0.125) | User 32 (deg product: 192) ⚠️ | **User 9 (cos: 0.703)** | **User 9 (P: 0.391)** | **User 16 (P: 0.999)** |
+| **#3** | User 16 (2 mutuals) | User 32 (J=0.120) | User 23 (deg product: 80) | **User 28 (cos: 0.630)** | **User 28 (P: 0.320)** | **User 28 (P: 0.994)** |
+| **#4** | User 28 (2 mutuals) | User 28 (J=0.118) | User 27 (deg product: 64) | User 20 (cos: 0.570) | User 15 (P: 0.311) | User 26 (P: 0.001) |
+| **#5** | User 30 (2 mutuals) | User 30 (J=0.111) | User 29 (deg product: 64) | User 15 (cos: 0.547) | User 20 (P: 0.298) | User 20 (P: 0.000) |
+
+> ⚠️ **The Critical Takeaway (Resolving Hub Bias):**  
+> Notice that simple heuristics (Common Neighbors and Preferential Attachment) rank **User 33** (the opposing faction leader) at Rank #1 because User 33 is a high-degree celebrity hub (17 friends). Recommending a rival leader violates community homophily!  
+> In contrast, **Node2Vec, Supervised LR, and GCN** correctly identify latent community structure, assigning near-zero probability to User 33 and prioritizing **User 16, User 28, and User 30** (fellow members of Mr. Hi's faction).
+
+---
+
+### Sample Output 3: Real-World SNAP Facebook Recommendations (User 9)
+
+On the **SNAP Facebook Ego-0** dataset (348 nodes, 2,866 friendships), selecting **User 9** (57 friends, 290 eligible candidates):
+
+| Rank | Candidate | Friendship Probability | Mutual Friends Count | Sample Mutual Friends | Candidate Degree |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **#1** | **User 62** | **0.9614** (96.1%) | 18 mutuals | 0, 26, 56, 67, 122... | 26 friends |
+| **#2** | **User 10** | **0.9548** (95.5%) | 9 mutuals | 0, 67, 142, 169, 200... | 10 friends |
+| **#3** | **User 183** | **0.9499** (95.0%) | 2 mutuals | 0, 133 | 2 friends |
+| **#4** | **User 274** | **0.9439** (94.4%) | 12 mutuals | 0, 3, 21, 75, 85... | 14 friends |
+| **#5** | **User 123** | **0.9351** (93.5%) | 11 mutuals | 0, 21, 26, 67, 122... | 18 friends |
 
 ---
 
