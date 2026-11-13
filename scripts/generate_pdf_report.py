@@ -293,7 +293,7 @@ story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#1f77b
 
 story.append(Paragraph("1. Executive Summary & Problem Formulation", style_h1))
 story.append(Paragraph(
-    "In modern social media platforms (Instagram, LinkedIn, Facebook), recommending new connections is fundamentally framed as <b>Link Prediction</b> on an undirected graph <i>G = (V, E)</i>. Given observed friendships <i>E</i> among users <i>V</i>, the system predicts the likelihood <i>P(Link | u, v)</i> of future friendships for unobserved pairs. Rather than treating users as isolated database rows, Graph ML leverages the <b>relational topology</b> and <b>latent community homophily</b> to suggest meaningful, high-trust connections.",
+    "In modern social media platforms (such as Instagram, LinkedIn, and Facebook), recommending new connections is fundamentally framed as <b>Link Prediction</b> on a social network. Given the network of existing friendships among users, the recommendation engine predicts the likelihood that two currently unconnected people will form a connection in the future. Rather than treating users as isolated database rows, Graph Machine Learning leverages friendship patterns, shared circles, and community homophily to suggest meaningful, high-trust connections.",
     style_body
 ))
 
@@ -321,7 +321,7 @@ story.append(Paragraph(
 
 # Small dataset table
 table_data1 = [
-    ["Dataset Name", "Nodes (|V|)", "Edges (|E|)", "Density", "Avg Degree", "Clustering (C)"],
+    ["Dataset Name", "Total Users", "Total Friendships", "Network Density", "Avg Friends/User", "Clustering Rate"],
     ["Zachary's Karate Club", "34", "78", "0.1390", "4.59", "0.5706"],
     ["SNAP Facebook Ego-0", "348", "2,866", "0.0474", "16.47", "0.6554"],
     ["SNAP Facebook Full", "4,039", "88,234", "0.0108", "43.69", "0.6055"],
@@ -347,43 +347,43 @@ story.append(PageBreak())
 # PAGE 2
 # ============================================================================
 
-story.append(Paragraph("4. Algorithmic Paradigms & Mathematical Mechanics", style_h1))
+story.append(Paragraph("4. Algorithmic Paradigms & Recommendation Methods", style_h1))
 story.append(Paragraph(
-    "Seven distinct link prediction algorithms spanning four methodological paradigms were developed from scratch:",
+    "Seven distinct link prediction algorithms spanning four methodological paradigms were developed and evaluated:",
     style_body
 ))
 
 story.append(Paragraph(
     "<b>A. Topological Heuristics (Rules of Thumb):</b><br/>"
-    "• <i>Common Neighbors (CN):</i> Scores connection potential purely via shared friends: <i>S(u, v) = |N(u) ∩ N(v)|</i>.<br/>"
-    "• <i>Jaccard Similarity:</i> Normalizes overlap by combined footprint: <i>S(u, v) = |N(u) ∩ N(v)| / |N(u) ∪ N(v)|</i>, penalizing celebrity hubs.<br/>"
-    "• <i>Preferential Attachment (PA):</i> Models rich-get-richer growth: <i>S(u, v) = deg(u) × deg(v)</i>, capturing global popularity.",
+    "• <i>Common Neighbors:</i> Recommends candidates who share the highest count of mutual friends with the target user, reflecting natural triadic closure.<br/>"
+    "• <i>Jaccard Similarity:</i> Evaluates the proportion of shared friends relative to the combined social circle of both users, preventing high-degree celebrity accounts from dominating recommendations.<br/>"
+    "• <i>Preferential Attachment:</i> Scores candidates based on overall social prominence and connectivity, capturing the natural tendency of popular users to attract new connections.",
     style_bullet
 ))
 
 story.append(Paragraph(
     "<b>B. Graph Representation Learning (Node2Vec):</b><br/>"
-    "Treats biased 2nd-order random walks as sentences and optimizes continuous 16-dimensional coordinate vectors <b>z</b>_u via Skip-gram with negative sampling. Controlled by return parameter <i>p</i> (local homophily) and in-out parameter <i>q</i> (structural exploration). Scored via cosine angle: <i>S(u, v) = (<b>z</b>_u · <b>z</b>_v) / (||<b>z</b>_u|| ||<b>z</b>_v||)</i>.",
+    "Treats exploratory random walks across friendship paths like sentences in natural language processing, learning compact 16-dimensional social profiles for every individual. Users who share similar friend circles or structural network roles are placed near each other in the latent space. Recommendations are produced by computing geometric profile similarity between users.",
     style_bullet
 ))
 
 story.append(Paragraph(
     "<b>C. Supervised Machine Learning (Hadamard + Logistic Regression):</b><br/>"
-    "Constructs element-wise symmetric edge features: <b>x</b>_(u, v) = <b>z</b>_u ⊙ <b>z</b>_v. Because multiplication is commutative (<i>z_(u,i) · z_(v,i) ≡ z_(v,i) · z_(u,i)</i>), order invariance is guaranteed for undirected social ties. Trains an L2-regularized classifier outputting calibrated probabilities: <i>P(Link) = σ(<b>w</b>^T <b>x</b>_(u, v) + b)</i>.",
+    "Combines the learned profiles of any two candidate users with a symmetric interaction operation, ensuring that the friendship prediction between User A and User B is identical to User B and User A. An L2-regularized logistic regression model is trained on confirmed friendship pairs and non-friendship pairs to output calibrated percentage likelihoods of a future tie.",
     style_bullet
 ))
 
 story.append(Paragraph(
     "<b>D. Deep Graph Neural Networks (GCN & GraphSAGE):</b><br/>"
-    "• <i>Graph Convolutional Network (GCN):</i> Performs spectral message passing: <b>H</b>^(l+1) = σ(<b>D</b>~^(-1/2) <b>A</b>~ <b>D</b>~^(-1/2) <b>H</b>^(l) <b>W</b>^(l)) with self-loops and democratic degree normalization.<br/>"
-    "• <i>GraphSAGE:</i> Inductively aggregates neighborhood mean vectors and concatenates with node state. Decodes links end-to-end via inner product: <i>y^_uv = σ(<b>z</b>_u^T <b>z</b>_v)</i> minimizing Binary Cross-Entropy loss.",
+    "• <i>Graph Convolutional Network (GCN):</i> Performs multi-layer message passing where each person repeatedly gathers and averages representations from immediate friends, smoothly refining their identity based on their wider community.<br/>"
+    "• <i>GraphSAGE:</i> Efficiently samples and aggregates neighborhood friend patterns and combines them with personal node state, training an end-to-end neural link decoder to predict genuine social ties.",
     style_bullet
 ))
 story.append(Spacer(1, 4))
 
 story.append(Paragraph("5. The Hub Bias Problem & Community Homophily", style_h1))
 story.append(Paragraph(
-    "A fundamental discovery in this project is the vulnerability of counting heuristics to <b>Hub Bias</b>: popular individuals (User 33) accumulate mutual connections purely through volume, misleading Common Neighbors into recommending rival leaders. Deep GNNs and Node2Vec eliminate hub bias by capturing multi-hop community homophily (prioritizing true faction peer User 16).",
+    "A central discovery in this project is the vulnerability of simple counting heuristics to <b>Hub Bias</b>: popular individuals (User 33) accumulate mutual connections purely through volume, misleading Common Neighbors into recommending rival leaders across community lines. Deep GNNs and Node2Vec eliminate hub bias by capturing multi-hop community homophily (correctly prioritizing true faction peer User 16).",
     style_body
 ))
 story.append(Image(str(fig2_path), width=6.8*inch, height=2.0*inch))
@@ -391,7 +391,7 @@ story.append(Spacer(1, 4))
 
 story.append(Paragraph("6. Strict Leak-Free Data Partitioning Protocol", style_h1))
 story.append(Paragraph(
-    "To prevent data leakage, 20% test edges are withheld from the training graph <i>G_train</i>. We enforce a <b>bridge-preserving check</b> (<i>nx.is_connected</i>) ensuring no nodes become isolated. Node2Vec random walks and GCN message-passing edges (<i>edge_index</i>) are constructed <b>exclusively on G_train</b>, while negative non-edges are sampled disjointly with zero train/test overlap.",
+    "To prevent data leakage, 20% of friendships are held out strictly for evaluation. A connectivity safeguard ensures that removing test edges never leaves any user completely stranded or disconnected. AI walks and neural message-passing pathways are constructed exclusively on the training graph, while non-friendship pairs are sampled cleanly with zero overlap between training and testing splits.",
     style_body
 ))
 
@@ -442,7 +442,7 @@ story.append(Spacer(1, 4))
 story.append(Paragraph("8. Key Scientific Insights & The Ego Inversion", style_h1))
 story.append(Paragraph(
     "• <b>GCN SOTA Performance:</b> The 2-layer GCN Link Predictor achieved the highest score on Zachary's Karate Club (<b>ROC-AUC: 0.8311, AP: 0.8769</b>), validating end-to-end message passing over shallow two-stage embeddings.<br/>"
-    "• <b>The Ego Inversion:</b> On dense personal ego networks (Facebook Ego-0, <i>C = 0.655</i>), <b>Common Neighbors dominates (ROC-AUC: 0.9368)</b> because triadic closure is the primary mechanism of clique formation. On global networks, representation learning is essential to discover multi-hop community structure.",
+    "• <b>The Ego Inversion:</b> On dense personal ego networks (Facebook Ego-0, high clustering rate of 0.66), <b>Common Neighbors dominates (ROC-AUC: 0.9368)</b> because triadic closure is the primary mechanism of clique formation. On global networks, representation learning is essential to discover multi-hop community structure.",
     style_body
 ))
 
